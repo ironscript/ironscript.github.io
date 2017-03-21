@@ -1,0 +1,16 @@
+_module "Factorial"
+    ; Demonstrating recursive functions.
+
+    ; using the easy-syntax in stdlib again 
+    (_use "stdlib")
+    
+    ; define factorial
+    [defun factorial (n)
+        [if n 
+            then [n * [factorial [n - 1] ] ]
+            else 1
+        ]
+    ]
+
+    (_print (factorial 5) )         ; prints 120
+    

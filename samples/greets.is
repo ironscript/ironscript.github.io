@@ -1,0 +1,13 @@
+_module "Greeting Somebody"
+    ; We will use easy-syntax provided in stdlib for better
+    ; readability and demonstrate the module usage as well :)
+
+    ; that's how you use the standard library
+    (_use "stdlib")
+    
+    ; Let's start with a simple "Hello somebody" function
+    [defun greet (name) 
+        (_print "Hello " name) 
+    ]
+
+    (greet "John Doe")

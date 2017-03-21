@@ -1,0 +1,6 @@
+_module "Hello World"
+    ; the _print function prints on the #output div
+    (_print "Hello World !")
+
+    ; _echo prints on the dev-tools console
+    (_echo "Hello dev-tools Console !!")
