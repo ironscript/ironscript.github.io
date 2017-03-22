@@ -176,7 +176,7 @@ _module "Main"
 							". Scroll to the top and check the runtime object logged on the console."
 						]
 						[H ".language-scheme#quine-div" {[.data-language = "scheme"]}
-							[T "pre" [T "code" (ajax-get-file "/samples/quine.is") ] ]
+							[T "pre.line-numbers" [T "code" (ajax-get-file "/samples/quine.is") ] ]
 						]
 					]
 				]

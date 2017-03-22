@@ -52,11 +52,19 @@ dl
 #quine-div
   width: 100%
   height: 600px
-  overflow: scroll
+  overflow-y: scroll
+  overflow-x: hidden
+  border: 1px #dadada solid
+  border-radius: 3px
+  box-shadow: 0 0 10px #dadada
 
   pre
     width: 100%
-    font-size: 1rem !important
+    background: transparent !important
+    font-size: 1em !important
+
+    code
+      background: transparent !important
 
 
 ::-webkit-scrollbar
