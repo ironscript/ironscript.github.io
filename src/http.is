@@ -1,0 +1,21 @@
+_sync
+
+	(_echo	"\n\n **Warning**\n\n"
+					" I am using a wrapper over http.js to do AJAX calls\n"
+					" in Ironscript (http.is it is called). The Javascript\n"
+					" implementation throws an error on success saying \n"
+					"    'can not read property fail'\n"
+					" I have not yet figured out why this happens.\n"
+					" So, expect these errors on console everytime you request\n"
+					" a resource. But We GOT caching, so you request things once\n"
+					" and happily reuse them ever after.\n\n\n"
+	)
+	(_let ajax-get-file @{
+		var req = new Http.Get (args[0], true);
+		var promise = req.start().then( function (res) {
+			$return (res);
+		});
+		promise.fail ( function (err, errcode) {
+			$throw (errcode);
+		});
+	}@ )

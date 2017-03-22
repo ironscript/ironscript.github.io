@@ -6831,6 +6831,7 @@ var Runtime = function () {
   }, {
     key: 'run',
     value: function run(filepath) {
+      //console.log('*************************************************');
       var src = this.readFile(filepath);
       //console.log(src);
       interpretSync(src, filepath, browserenv(this.context(dirname(filepath))));
@@ -6978,11 +6979,12 @@ var Runtime = function () {
   }, {
     key: 'readFile',
     value: function readFile(filepath) {
-      //console.log('-----------------------',filepath,'----------------------');
+      console.log('-----------------------', filepath, '----------------------');
       //debugger;
       var f = this.open(filepath);
 
       //console.log(new Path(filepath));
+      if (f) console.log(f.content);
 
       if (f) return f.content;
       return null;
@@ -7056,7 +7058,7 @@ var Package = function () {
   createClass(Package, [{
     key: 'run',
     value: function run() {
-      console.log("Running ", this.main);
+      console.log("Running ", this.runtime);
       this.runtime.run(this.main);
       return null;
     }

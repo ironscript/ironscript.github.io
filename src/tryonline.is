@@ -1,0 +1,98 @@
+_module "Try Ironscript Online"
+	
+	(_use "stdlib")
+	(_use "./virtualdom.is")
+
+	(_import "./actions.is" _all)
+	(_import "./data-streams.is" _all)
+	(_import "./flask.is" _all)
+	(_import "./http.is" _all)
+	
+	[SAMPLE-CODE-CACHE = {}]
+	[defun get-sample-code-cached (uri) (_begin
+		[code = (_dot SAMPLE-CODE-CACHE uri)]
+		[if code then code else (_begin
+			[ (_dot SAMPLE-CODE-CACHE uri) = (_try (ajax-get-file uri) NIL) ]
+			(_dot SAMPLE-CODE-CACHE uri)
+		) ]
+	) ]
+
+	[defun COMPONENTS.TryOnline (props) (_begin
+		[render = 
+			[T ".modal#online-editor" 
+				[T ".modal-background"]
+				[T ".modal-content.wide-modal"
+					[T "section.section.lr-padded-50"
+						[T ".columns.level"
+							[T ".column.is-1.margin-10"
+								[H "img.image.is-64x64" { 
+									[.src = "./assets/logo.png"] 
+									[.alt = "Ironscript"]
+								}]
+							]
+							[T ".column.is-5.margin-10"
+								[T "p.title.is-3" "Ironscript 1.2" [T "sup" "Beta"] ]
+								[T "p.subtitle.is-6" "Select sample program / write the code and click Run."]
+							]
+							[T ".column.is-4.margin-10"
+								[T ".field" 
+									[T "label.label.is-small" "Sample Programs"]
+									[T "span.control.is-expanded" [T "span.select.is-fullwidth"
+										[H "select#sample-program-selector" {[.onblur = ACTIONS.select-sample-program]}
+											[H "option" {[.value = "./samples/default.is"]} "Default"] 
+											[H "option" {[.value = "./samples/hello-world.is"]} "Hello World"] 
+											[H "option" {[.value = "./samples/greets.is"]} "Greeting Somebody"] 
+											[H "option" {[.value = "./samples/factorial.is"]} "Factorial"] 
+										]
+									] ]
+								]  
+							]
+							[T ".column"
+								[H "a.button.is-info.is-medium.is-pulled-right#run-code" {[.onclick = ACTIONS.run-code]} "Run"]
+							]
+						]
+						[T "#editor"]
+						[T "hr"]
+						[T "h4.subtitle.is-5" "Output:"]
+						[T ".content#output"]
+						[T ".is-clearfix" [H "a.button.is-warning.is-pulled-right#clear-output" {[.onclick = ACTIONS.clear-output]} "Clear Output"] ]
+					]
+				]
+				[H "button.modal-close#editor-close-btn" {[.onclick = ACTIONS.quit-online-editor]}]
+			]
+		]
+
+		[defun run (str) (_begin
+			[prologue = @[ 
+				(_sync (_use "stdlib") (_let _print @{
+					var s = "";
+					for(var i=0; i<args.length; i++) {
+						if (typeof args[i] === 'string') s += args[i];
+						else s += JSON.stringify(args[i])+" ";
+					}
+					s += "<br>";
+					document.getElementById("output").innerHTML += s;
+					$return (s);
+				}@	)  
+			]@ ]
+			
+			[tmp = (_eval (+ prologue str) ) ]
+			NIL
+		) ]
+		
+		[get-sample-program-uri = @{ var ret = document.getElementById("sample-program-selector").value; $return (ret); }@ ]
+		[clear-output = @{ document.getElementById("output").innerHTML = "<div></div>"; }@ ]
+
+
+		(_do (_on ACTIONS.open-online-editor ( @{ document.getElementById("online-editor").className = "modal is-active"; }@ NIL ) ) )
+		(_do (_on ACTIONS.quit-online-editor ( @{ document.getElementById("online-editor").className = "modal"; }@ NIL ) ) )
+
+		(_do (_on ACTIONS.run-code (run  (_pull DATA-STREAMS.source-code-stream) ) ) )
+		(_do (_on ACTIONS.clear-output (clear-output NIL) ) )
+
+		(_do (_on ACTIONS.select-sample-program (_begin
+			(_push DATA-STREAMS.sample-program-stream (get-sample-code-cached (get-sample-program-uri NIL) ) ) 
+		) ) )
+		
+		render
+	) ]

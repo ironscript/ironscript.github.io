@@ -1,0 +1,10 @@
+{
+  "main": "./app.is",
+  "dest": "./app.iron.js",
+  "imports": [
+    {
+      "name": "http",
+      "url": "./js/http.js"
+    }
+  ]
+}

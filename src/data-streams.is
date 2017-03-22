@@ -1,0 +1,8 @@
+_module "Data Streams"
+	
+	(_use "stdlib")
+	(_import "./vdom.is" (PORT))
+	
+	[DATA-STREAMS = {}]
+	[DATA-STREAMS.source-code-stream = (PORT)]
+	[DATA-STREAMS.sample-program-stream = (PORT)]

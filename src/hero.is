@@ -1,0 +1,20 @@
+_module "Hero"
+	
+	(_use "stdlib")
+	(_use "./virtualdom.is")
+	(_import "./actions.is" _all)
+
+	[defun COMPONENTS.Hero (props)
+		[T "section.hero.is-warning.is-bold.is-medium" [T ".hero-body" [T ".container"
+			[T "h1.title.is-2.is-spaced" "Ironscript 1.2" [T "sup" "Beta"]]
+			[T "h2.subtitle.is-4" "Easy LISPing for Rapid App Development"]
+			[H "a.button.is-outlined.is-large.is-inverted.is-warning.margin-10#try-btn" 
+				{[.onclick = ACTIONS.open-online-editor]} "
+				Try Online"
+			]
+			[H "a.button.is-outlined.is-large.is-inverted.is-warning" 
+				{[.href = "https://github.com/GnsP/ironscript/archive/v1.2.2.tar.gz"]} 
+				"Download v1.2.2.tar.gz"
+			]
+		] ] ]
+	]

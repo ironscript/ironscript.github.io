@@ -1,0 +1,35 @@
+_module "Main"
+  (_use "stdlib")
+	(_use "./src/virtualdom.is")
+
+	(_import "./src/http.is" _all)
+	(_import "./src/actions.is" _all)
+	(_import "./src/data-streams.is" _all)
+	(_import "./src/flask.is" _all)
+
+	(_import "./src/header.is" _all)
+	(_import "./src/hero.is" _all)
+	(_import "./src/homepage.is" _all)
+	(_import "./src/tryonline.is" _all)
+	(_import "./src/footer.is" _all)
+
+	
+	[defun COMPONENTS.app (props)
+		[T "body"
+			[T "Header"]
+			[T "Hero"]
+			[T "HomepageMain"]
+			[T "TryOnline"]
+			[T "Footer"]
+		]
+	] 
+
+	(update "app-root" [T "app"])
+	
+	[flask = (FLASK.init "#editor")]
+	[DATA-STREAMS.source-code-stream = (_stream FLASK.magic flask)]
+
+	(_do (_on DATA-STREAMS.sample-program-stream (_begin
+		(FLASK.update flask (_pull DATA-STREAMS.sample-program-stream) ) 
+		(_push DATA-STREAMS.source-code-stream (_pull DATA-STREAMS.sample-program-stream) )
+	) ) )

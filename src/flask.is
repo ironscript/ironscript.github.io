@@ -1,0 +1,17 @@
+_module "Flask (Wrapper on codeflask.js)"
+	(_use "stdlib")
+	
+	[FLASK = {}]
+	[FLASK.init = @{
+		var flask = new CodeFlask;
+		flask.run(args[0], {language:'scheme'});
+		$return (flask);
+	}@]
+
+	[FLASK.magic = @{
+		args[0].onUpdate(function(code) {$yield(code);});
+	}@ ]
+
+	[FLASK.update = @{
+		args[0].update(args[1]);
+	}@ ]

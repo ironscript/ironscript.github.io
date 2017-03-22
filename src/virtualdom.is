@@ -1,0 +1,10 @@
+_module "VirtualDOM"
+	
+	(_use "stdlib")
+	(_import "./vdom.is" _all)
+	
+	[_rho (H @tag) (h @tag {}) ]
+	[_rho (H @tag @props) (h @tag @props) ]
+	[_rho (H @tag @props :@children) (h @tag @props :@children) ]
+	[_rho (T @tag :@children) (h @tag {} :@children) ]
+	[_rho (T @tag) (h @tag {}) ]

@@ -1,0 +1,17 @@
+_module "Footer"
+	
+	(_use "stdlib")
+	(_use "./virtualdom.is")
+
+	[defun COMPONENTS.Footer (props) (_begin
+		[render = 
+			[T "footer.footer" [T ".container" [T ".content.has-text-centered"
+				[T "p" 
+					[T "strong" "Ironscript"] " by " [H "a" {[.href = "https://gnsp.github.io" ]} "Ganesh Prasad (GnsP)"]
+					". The code is licensed " [H "a" {[.href = "http://opensource.org/licenses/mit-license.php"]} "MIT"] "."
+				]
+				[T "p" [H "a.icon" {[.href = "https://github.com/ironscript"]} [T "i.fa.fa-github"] ] ]
+			] ] ]
+		]
+		render
+	) ]

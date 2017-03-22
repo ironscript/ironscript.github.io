@@ -1,0 +1,50 @@
+_module "Header"
+
+	(_use "stdlib")
+	(_use "./virtualdom.is")
+	
+	[defun COMPONENTS.Header (props)
+		(_begin
+			[render = 
+		
+				[T "nav.nav.is-dark.has-shadow#navbar"
+					[T ".container"
+						[T ".nav-left"
+							[T "a.nav-item"
+								[H "img" { 
+									[.src = "./assets/logo.png"] 
+									[.alt = "Ironscript"]
+								}]
+							]
+						]
+
+						[T "span.nav-toggle" 
+								[T "span"] 
+								[T "span"] 
+								[T "span"]
+						]
+
+						[T ".nav-right.nav-menu"
+							[H "a.nav-item.is-tab" {[.href = "#get-started"]} 
+								[T "span.icon.margin-10" [T "i.fa.fa-rocket"]] 
+								"Get Started"
+							]
+							[H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript/ironscript/blob/master/README.md"]}
+								[T "span.icon.margin-10" [T "i.fa.fa-hashtag"]] 
+								"Documentation"
+							]
+							[H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript/ironscript/wiki/Examples"]}
+								[T "span.icon.margin-10" [T "i.fa.fa-heart"]] 
+								"Examples"
+							]
+							[H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript"]}
+								[T "span.icon.margin-10" [T "i.fa.fa-github"]] 
+								"Github"
+							]
+						]
+					]
+				]
+			]
+			render
+		)
+	]

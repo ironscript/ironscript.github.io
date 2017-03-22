@@ -1,0 +1,854 @@
+;;;;;;;;;;;;;;;;;;;;      app.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Main"
+  (_use "stdlib")
+  (_use "./src/virtualdom.is")
+
+  (_import "./src/http.is" _all)
+  (_import "./src/actions.is" _all)
+  (_import "./src/data-streams.is" _all)
+  (_import "./src/flask.is" _all)
+
+  (_import "./src/header.is" _all)
+  (_import "./src/hero.is" _all)
+  (_import "./src/homepage.is" _all)
+  (_import "./src/tryonline.is" _all)
+  (_import "./src/footer.is" _all)
+
+  
+  [defun COMPONENTS.app (props)
+    [T "body"
+      [T "Header"]
+      [T "Hero"]
+      [T "HomepageMain"]
+      [T "TryOnline"]
+      [T "Footer"]
+    ]
+  ] 
+
+  (update "app-root" [T "app"])
+  
+  [flask = (FLASK.init "#editor")]
+  [DATA-STREAMS.source-code-stream = (_stream FLASK.magic flask)]
+
+  (_do (_on DATA-STREAMS.sample-program-stream (_begin
+    (FLASK.update flask (_pull DATA-STREAMS.sample-program-stream) ) 
+    (_push DATA-STREAMS.source-code-stream (_pull DATA-STREAMS.sample-program-stream) )
+  ) ) )
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/virtualdom.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "VirtualDOM"
+  
+  (_use "stdlib")
+  (_import "./vdom.is" _all)
+  
+  [_rho (H @tag) (h @tag {}) ]
+  [_rho (H @tag @props) (h @tag @props) ]
+  [_rho (H @tag @props :@children) (h @tag @props :@children) ]
+  [_rho (T @tag :@children) (h @tag {} :@children) ]
+  [_rho (T @tag) (h @tag {}) ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/vdom.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "VDOM : The Virtual DOM implementation in Ironscript"
+  (_use "stdlib")
+
+  [defun h (type props :children) {
+    [.props = props]
+    
+    [parse-type-string = @{
+      var type = args[0];
+      var idDelim = args[1];
+      var classDelim = args[2];
+      if (!idDelim) idDelim = '#';
+      if (!classDelim) classDelim = '.';
+
+      function parseClass (str) {
+        var tarr = str.split(classDelim);
+        var type = "div";
+        if (classDelim !== str[0]) type = tarr[0];
+        return [type, tarr.slice(1).join(' ')];
+      }
+
+      function parseId (str) {
+        var tarr = str.split(idDelim);
+        if (idDelim === str[0]) return ["div", "", tarr[1]];
+        else if (tarr.length > 1) {
+          let ret = parseClass(tarr[0]);
+          ret.push(tarr[1]);
+          return ret;
+        }
+        else return parseClass(tarr[0]);
+      }
+      $return (parseId(type));
+    }@ ]
+    
+    [t = (parse-type-string type) ]
+    [if ["object" === (typeof t)]
+      then (_begin
+        [.type = t.0]
+        [props.class = t.1]
+        [props.id = t.2]
+      )
+      else [.type = t]
+    ]
+    [if children [.children = (_seq :children)] ]
+  } ]
+
+
+  [COMPONENTS = {}]
+  [NOOP = (_fn () NIL) ]
+  [PORT = (_fn () (_stream NOOP NIL) ) ]
+
+
+  [defun vnode (node id) (_begin
+    [type = node.type]
+    [if type
+      then (_begin
+        [componentfn = (_dot COMPONENTS type)]
+        [if componentfn
+          then (_begin
+            [nd = (componentfn node.props)]
+            [if node.props.id then (vnode nd node.props.id) else (vnode nd ".")]
+          )
+          else {
+            [.type = type]
+            [.props = node.props]
+            [if node.props.id then [.id = node.props.id] else [.id = "."] ]
+            [if node.children
+              [.children = (_map node.children (_fn (child index) 
+                (vnode child (concat .id "." index) )
+              ) ) ]
+            ] 
+          }
+        ]
+      )
+      else node
+    ]
+  )]
+
+
+  
+  [EVENTS = {}]
+  [listeners = {}]
+  (_let ignore (_begin
+    [init = @{
+      var capt = true;
+      if (args[0] === "false") capt = false;
+      ("keypress keydown keyup click dbclick scroll focus blur change search select submit input invalid".split(" "))
+      .forEach (function (e) {
+        document.getElementById("app-root").addEventListener(e, function (ev) {
+          $yield(ev);
+        }, capt) ;
+      });
+    }@ ]
+    
+    (_def EVENTS.event-stream (_stream init "true"))
+    
+    [defun EVENTS.listen (id event port) (_begin
+      (_let key (+ id event))
+      (_let (_dot listeners key ) port)
+    ) ]
+    [defun EVENTS.mute (id event) (_begin 
+      [key = [id + event]]
+      [listeners.key = NIL]
+    ) ]
+    [defun EVENTS.remove (id) ( @{
+      var obj = args[0];
+      var id = args[1];
+      Object.keys(obj).forEach(function (name) {
+        if (name.startsWith(id) || name.startsWith(id+':')) obj[name] = undefined;
+      });
+    }@ listeners id ) ]
+
+    (_do (_on EVENTS.event-stream 
+      (_begin
+        [e = (_pull EVENTS.event-stream)]
+        (_let key (+ e.target.id e.type))
+        (_let port (_dot listeners key) )
+        [if port (_push port e)]
+      )
+    ) )
+  ) )
+
+
+  [update-fn-internal = (_fx ( 
+    @{
+    
+      function isEventProp (name) { return /^on/.test(name); }
+      function extractEventName (name) { return name.slice(2).toLowerCase(); }
+
+      function isCustomProp (name) {
+        if (name === "id") return true;
+        if (isEventProp(name)) return true;
+        return false;
+      }
+      
+      
+      
+      function setBooleanProp ($target, name, value) {
+        if (value) $target.setAttribute(name, value);
+        $target[name] = value;
+      }
+
+      function setProp ($target, name, value) {
+        if (isCustomProp(name)) return;
+        else if (typeof value === 'boolean') setBooleanProp ($target, name, value);
+        else $target.setAttribute (name, value);
+      }
+
+      function setProps ($target, props) {
+        if (typeof props === 'object') Object.keys(props).forEach(function (name) {
+          setProp($target, name, props[name]);
+        });
+      }
+
+      function removeBooleanProp ($target, name) {
+        $target.removeAttribute (name);
+        $target[name] = false;
+      }
+
+      function removeProp ($target, name, value) {
+        if (isCustomProp(name)) return;
+        else if (typeof value === 'boolean') removeBooleanProp ($target, name);
+        else $target.removeAttribute (name);
+      }
+
+      function updateProp ($target, name, newVal, oldVal) {
+        if (!newVal) removeProp ($target, name, oldVal);
+        else if (!oldval || newVal !== oldVal) setProp ($target, name, newVal);
+        else return;
+      }
+
+      function updateProps ($target, newProps, oldProps) {
+        if (!oldProps) oldProps = {};
+        var props = Object.assign ({}, newProps, oldProps);
+        Object.keys(props).forEach (function (name) {
+          updateProp ($target, name, newProps[name], oldProps[name]);    
+        });
+      }
+
+
+      function addEventListeners (id, props) {
+        if (typeof props === 'object') Object.keys(props).forEach(function (name) {
+          if (isEventProp(name)) addPatch.push({id: id, type: extractEventName(name), port: props[name]});
+        });
+      }
+
+
+
+      function createElement (node) {
+        if (typeof node === 'string') return document.createTextNode(node);
+        var $el = document.createElement (node.type);
+        $el.setAttribute("id", node.id);
+        setProps ($el, node.props);
+
+        addEventListeners(node.id, node.props);
+        if (node.children) node.children.arr.map(createElement).forEach($el.appendChild.bind($el));
+        return $el;
+      }
+      
+      function changed (node1, node2) {
+        return typeof node1 !== typeof node2 
+          || typeof node1 === 'string' && node1 !== node2 
+          || node1.type !== node2.type 
+          || node1.id !== node2.id;
+      }
+
+      function Patch () {
+        this.arr = [];
+        this.push = function (x) {this.arr.push(x); }.bind(this);
+      }
+
+      var addPatch = [];
+      var removePatch = [];
+
+      function updateElement ($par, newNode, oldNode, index=0) {
+        if (!oldNode) {
+          $par.appendChild (createElement (newNode));
+        }
+        else if (!newNode) {
+          removePatch.push(oldNode.id);
+          $par.removeChild($par.childNodes[index]);
+        }
+        else if (changed(newNode, oldNode)) {
+          removePatch.push(oldNode.id);
+          $par.replaceChild(createElement(newNode), $par.childNodes[index]);
+        }
+        else if (newNode.type) {
+          updateProps($par.childNodes[index], newNode.props, oldNode.props);
+          var newLen = newNode.children.arr.length;
+          var oldLen = oldNode.children.arr.length;
+
+          for (var i=0; i<newLen || i<oldLen; i++) {
+            updateElement ($par.childNodes[index], newNode.children.arr[i], oldNode.children.arr[i], i);
+          }
+        }
+      }
+
+      function update (id, newNode, oldNode) {
+        var $par = document.getElementById (id);
+        addPatch = [];
+        removePatch = [];
+        updateElement ($par, newNode, oldNode);
+        return {add:addPatch, remove:removePatch};
+      } 
+      $return (update);
+    }@ ) ) ]
+
+  
+  [defun update (id newNode oldNode) 
+    (_begin
+      [vOldNode = [if oldNode then (vnode oldNode) else NIL]]
+      [vNewNode = [if newNode then (vnode newNode) else NIL]]
+      [patches = (update-fn-internal id vNewNode vOldNode ) ]
+      (_map patches.remove (_fn (item) (EVENTS.remove item) ) )
+      (_map patches.add (_fn (item) (EVENTS.listen item.id item.type item.port) ) )
+    )
+  ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/http.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_sync
+
+  (_echo  "\n\n **Warning**\n\n"
+          " I am using a wrapper over http.js to do AJAX calls\n"
+          " in Ironscript (http.is it is called). The Javascript\n"
+          " implementation throws an error on success saying \n"
+          "    'can not read property fail'\n"
+          " I have not yet figured out why this happens.\n"
+          " So, expect these errors on console everytime you request\n"
+          " a resource. But We GOT caching, so you request things once\n"
+          " and happily reuse them ever after.\n\n\n"
+  )
+  (_let ajax-get-file @{
+    var req = new Http.Get (args[0], true);
+    var promise = req.start().then( function (res) {
+      $return (res);
+    });
+    promise.fail ( function (err, errcode) {
+      $throw (errcode);
+    });
+  }@ )
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/actions.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Actions"
+  
+  (_use "stdlib")
+  (_import "./vdom.is" (PORT))
+
+  [ACTIONS = {}]
+  [ACTIONS.open-online-editor = (PORT)]
+  [ACTIONS.quit-online-editor = (PORT)]
+  [ACTIONS.run-code = (PORT)]
+  [ACTIONS.clear-output = (PORT)]
+  [ACTIONS.select-sample-program = (PORT)]
+  
+  [ACTIONS.after-update = (PORT)]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/data-streams.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Data Streams"
+  
+  (_use "stdlib")
+  (_import "./vdom.is" (PORT))
+  
+  [DATA-STREAMS = {}]
+  [DATA-STREAMS.source-code-stream = (PORT)]
+  [DATA-STREAMS.sample-program-stream = (PORT)]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/flask.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Flask (Wrapper on codeflask.js)"
+  (_use "stdlib")
+  
+  [FLASK = {}]
+  [FLASK.init = @{
+    var flask = new CodeFlask;
+    flask.run(args[0], {language:'scheme'});
+    $return (flask);
+  }@]
+
+  [FLASK.magic = @{
+    args[0].onUpdate(function(code) {$yield(code);});
+  }@ ]
+
+  [FLASK.update = @{
+    args[0].update(args[1]);
+  }@ ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/header.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Header"
+
+  (_use "stdlib")
+  (_use "./virtualdom.is")
+  
+  [defun COMPONENTS.Header (props)
+    (_begin
+      [render = 
+    
+        [T "nav.nav.is-dark.has-shadow#navbar"
+          [T ".container"
+            [T ".nav-left"
+              [T "a.nav-item"
+                [H "img" { 
+                  [.src = "./assets/logo.png"] 
+                  [.alt = "Ironscript"]
+                }]
+              ]
+            ]
+
+            [T "span.nav-toggle" 
+                [T "span"] 
+                [T "span"] 
+                [T "span"]
+            ]
+
+            [T ".nav-right.nav-menu"
+              [H "a.nav-item.is-tab" {[.href = "#get-started"]} 
+                [T "span.icon.margin-10" [T "i.fa.fa-rocket"]] 
+                "Get Started"
+              ]
+              [H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript/ironscript/blob/master/README.md"]}
+                [T "span.icon.margin-10" [T "i.fa.fa-hashtag"]] 
+                "Documentation"
+              ]
+              [H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript/ironscript/wiki/Examples"]}
+                [T "span.icon.margin-10" [T "i.fa.fa-heart"]] 
+                "Examples"
+              ]
+              [H "a.nav-item.is-tab" {[.href = "https://github.com/ironscript"]}
+                [T "span.icon.margin-10" [T "i.fa.fa-github"]] 
+                "Github"
+              ]
+            ]
+          ]
+        ]
+      ]
+      render
+    )
+  ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/hero.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Hero"
+  
+  (_use "stdlib")
+  (_use "./virtualdom.is")
+  (_import "./actions.is" _all)
+
+  [defun COMPONENTS.Hero (props)
+    [T "section.hero.is-warning.is-bold.is-medium" [T ".hero-body" [T ".container"
+      [T "h1.title.is-2.is-spaced" "Ironscript 1.2" [T "sup" "Beta"]]
+      [T "h2.subtitle.is-4" "Easy LISPing for Rapid App Development"]
+      [H "a.button.is-outlined.is-large.is-inverted.is-warning.margin-10#try-btn" 
+        {[.onclick = ACTIONS.open-online-editor]} "
+        Try Online"
+      ]
+      [H "a.button.is-outlined.is-large.is-inverted.is-warning" 
+        {[.href = "https://github.com/GnsP/ironscript/archive/v1.2.2.tar.gz"]} 
+        "Download v1.2.2.tar.gz"
+      ]
+    ] ] ]
+  ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/homepage.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Main"
+  (_use "stdlib")
+  (_use "./virtualdom.is")
+  (_import "./http.is" _all)
+
+  [defun COMPONENTS.HomepageMain (props) (_begin
+    [render = 
+      [T "section.section" [T ".container"
+        [T ".content.has-text-centered.is-large"
+          [T "blockquote"
+            "Ironscript is a minimal LISP like programming language implemented in Javascript."
+            " It is interpreted and the interpreter is written in ES2015. Currently we have an "
+            [T "strong" "interpreter"] " that runs on browser and nodejs environments and a "
+            [T "strong" "bundler"] " to bundle ironscript modules into .js files for the browser."
+          ]
+        ]
+        
+        [T "section.section"
+          [T ".columns" 
+            [T "article.column.is-half.margin-10.content.notification.transparent"
+              [T "h3.subtitle.is-3.green-text.text-darken-3.has-text-centered" "Ironscript IS"]
+              [T "dl"
+                [T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "LISP and Javascript Mixed."] ]
+                [T "dd" "Ironscript is essentially an S-Expression evaluator written in Javascript. "
+                        "This evaluator can use functions written Javascript and interact with the "
+                        "JS environment at runtime through those functions. In fact you can write "
+                        "Javascript functions inside your Ironscript S-Expressions using a simple API."
+                ]
+                
+                [T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Functional."]]
+                [T "dd" "Ironscript is essentially a LISP over JS, every valid Ironscript statement / "
+                        "expression / program is an " [T "strong" "S-Expression"] ". You will be writing "
+                        "mostly functions and streams to express your logic in Ironscript."
+                ]
+                
+                [T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Better suited for expressing Asynchronous data flows."]]
+                [T "dd" "The S-Expression " [T "strong" "evaluator is written in CPS (Continuation Passing Style)"] 
+                        ". Therefore it's a tiny bit slower than synchronous Javascript. But it enables the "
+                        "programmer to express complex asynchronous data and control flows linearly"
+                ]
+
+                [T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Modular, Easy to Learn, Use and Extend."]]
+                [T "dd" "Ironscript provides an easy-syntax module in the standard library (stdlib), "
+                        "that provides some frequently used syntactial abstractions as pattern rewriting "
+                        "rules. Ironscript also provides an easy construct for defining pattern rewrite rules."
+                ]
+                
+                [T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Free and OpenSource"]]
+                [T "dd" "Free as in 'freedom'. Ironscript is licensed " 
+                        [H "a" {[.href = "http://opensource.org/licenses/mit-license.php"]} "MIT"]  
+                        " and the source is hosted on github."
+                ]
+              ]
+            ]
+            
+            [T "article.column.content.notification.transparent"
+              [T "h3.subtitle.is-3.red-text.text-darken-3.has-text-centered" "Ironscript IS NOT"]
+              [T "dl"
+                [T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "CommonLISP or Scheme or ..."] ]
+                [T "dd" "Ironscript is a LISP with its own syntactical conventions. Ironscript is "
+                        "not designed to be pure LISP or Pure Javascript. It's designed to be minimal, "
+                        "easily extendable and suitable for " [T "strong" "Rapid Prototyping"] 
+                        " of applications. Its design goals are not syntactical or theoretical purity. "
+                        "We are more concerned about simplicity and extensibility." 
+                ]
+                
+                [T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Compiled to Javascript."] [T "emph.subtitle.is-5" "(But will be)"]]
+                [T "dd" "Currently we do not have an Ironscript to JS transpiler. We do hope to have "
+                        "a decent Optimizing Compiler to JS from v1.3 onwards. Currently there is a lot of "
+                        "room for optimizations to be exploited, the interpretation is reasonably fast but "
+                        "with an Optimizing Compiler we can generate better Javascript."
+                ]
+                
+                [T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Limited to the Browserland"]]
+                [T "dd" "Ironscript can run 'literally' anywhere, where Javascript can run. That includes "
+                        "servers via NodeJS, mobile applications via Cordova / PhoneGap. And as for the browser, " 
+                        [T "strong" "this website is written in Ironscript."] " Ironscript has been tested on Cordova too." 
+                ]
+
+                [T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Stable Yet."]]
+                [T "dd" "As of March 2017 (i.e. when this webpage was written), all these 'we' in this "
+                        "document is a single person. Therefore the pace of development is slow and the "
+                        "design goals are driven by the needs of an individual. " 
+                        [T "strong" "Contribute to make it better and more stable."] 
+                ]
+              ]
+            ]
+          ]
+        ]
+
+
+        [T "section.section#get-features"
+          [T "h1.title.is-2.has-text-centered" "Features"]
+          [T "hr.grey-text.text-darken-2"]
+          
+          [T ".tile.is-ancestor.is-parent"
+            [T "article.tile.is-4.is-child.has-text-centered"
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-code"] ] "Functional"]
+                [T "p.subtitle.is-6" "LISPlike functional with higher order functions."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-clone"] ] "Modular"]
+                [T "p.subtitle.is-6" "Organize your code into modules and reuse."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-random"] ] "Asynchronous"]
+                [T "p.subtitle.is-6" "Built around a CPS S-Expression evaluator."]
+              ] ] ]
+            ]
+          ]
+          
+          [T ".tile.is-ancestor.is-parent"
+            [T "article.tile.is-4.is-child.has-text-centered"
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-code-fork"] ] "Streams"]
+                [T "p.subtitle.is-6" "Streams are live values or values that change asynchronously and are first class citizens in Ironscript."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-diamond"] ] "Dynamic"]
+                [T "p.subtitle.is-6" "Ironscript is Dynamically Typed and almost eveything that's not literal is symbolic."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-paw"] ] "Rapid App Dev"]
+                [T "p.subtitle.is-6" "Prototype highly interactive apps faster and more easily."]
+              ] ] ]
+            ]
+          ]
+          
+          [T ".tile.is-ancestor.is-parent"
+            [T "article.tile.is-4.is-child.has-text-centered"
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-expand"] ] "Extendable"]
+                [T "p.subtitle.is-6" "Ironscript is easily extendable through Macros, Rewrite Rules and Javascript."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-compress"] ] "Minimal"]
+                [T "p.subtitle.is-6" "The Ironscript interpreter and browserside runtime are about 12KB combined."]
+              ] ] ]
+            ]
+            [T "article.tile.is-4.is-child.has-text-centered" 
+              [T ".inb" [T ".feature.level" [T "article"
+                [T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-magnet"] ] "Mix with JS"]
+                [T "p.subtitle.is-6" "Interoperable with Javascript through a powerful embedding syntax and API."]
+              ] ] ]
+            ]
+          ]
+        ]
+
+        
+        [T "section.section"
+          [T ".content.is-medium"
+            [T "h2.title.is-3.has-text-centered" "So, What does it LOOK like ?"]
+            [T "p" 
+              "The following is the " [T "strong" "source code of this website"] ". Do we, all of us, not love " 
+              [T "strong" "Quines"] " ? Here you can see a " [T "strong" "VirtualDOM"] " implemented in Ironscript "
+              "using source code level Javascript embedding. You can also see how the code is neatly organized into "
+              "modules. Though the sourcecode is largely uncommented, it's fairly readable. "
+            ]
+            [T "p" 
+              "For a more detailed look at the language, " [T "strong" 
+                "open the Chrome Developer Tools" 
+                [T "span.icon" [T "i.fa.fa-angle-right"] ] 
+                "Console"
+              ]
+              ". Scroll to the top and check the runtime object logged on the console."
+            ]
+            [H ".language-scheme#quine-div" {[.data-language = "scheme"]}
+              [T "pre" [T "code" (ajax-get-file "/samples/quine.is") ] ]
+            ]
+          ]
+        ]
+
+
+        [T "section.section#get-started"
+          [T ".content.has-text-centered"
+            [T "h2.title.is-3" "Get Started"]
+            [T "h5.subtitle.is-5" "Installation with NPM"]
+            [T "pre" [T "code" "npm install -g ironscript"] ]
+          ]
+        ]
+        
+
+        [T "section.section"
+          [T ".content.is-medium.has-text-centered"
+            [T "h2.title.is-3" "Author"]
+            [T "p.is-medium" "My name is " [T "strong" "Ganesh Prasad (GnsP)"] " and you can know more about me at "
+                [H "a" {[.href = "https://www.linkedin.com/in/ganesh-prasad-20319868/"]} "my LinkedIn"] 
+                " ."
+            ]
+          ]
+        ]
+      ] ]
+    ]
+    render
+  ) ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/tryonline.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Try Ironscript Online"
+  
+  (_use "stdlib")
+  (_use "./virtualdom.is")
+
+  (_import "./actions.is" _all)
+  (_import "./data-streams.is" _all)
+  (_import "./flask.is" _all)
+  (_import "./http.is" _all)
+  
+  [SAMPLE-CODE-CACHE = {}]
+  [defun get-sample-code-cached (uri) (_begin
+    [code = (_dot SAMPLE-CODE-CACHE uri)]
+    [if code then code else (_begin
+      [ (_dot SAMPLE-CODE-CACHE uri) = (_try (ajax-get-file uri) NIL) ]
+      (_dot SAMPLE-CODE-CACHE uri)
+    ) ]
+  ) ]
+
+  [defun COMPONENTS.TryOnline (props) (_begin
+    [render = 
+      [T ".modal#online-editor" 
+        [T ".modal-background"]
+        [T ".modal-content.wide-modal"
+          [T "section.section.lr-padded-50"
+            [T ".columns.level"
+              [T ".column.is-1.margin-10"
+                [H "img.image.is-64x64" { 
+                  [.src = "./assets/logo.png"] 
+                  [.alt = "Ironscript"]
+                }]
+              ]
+              [T ".column.is-5.margin-10"
+                [T "p.title.is-3" "Ironscript 1.2" [T "sup" "Beta"] ]
+                [T "p.subtitle.is-6" "Select sample program / write the code and click Run."]
+              ]
+              [T ".column.is-4.margin-10"
+                [T ".field" 
+                  [T "label.label.is-small" "Sample Programs"]
+                  [T "span.control.is-expanded" [T "span.select.is-fullwidth"
+                    [H "select#sample-program-selector" {[.onblur = ACTIONS.select-sample-program]}
+                      [H "option" {[.value = "./samples/default.is"]} "Default"] 
+                      [H "option" {[.value = "./samples/hello-world.is"]} "Hello World"] 
+                      [H "option" {[.value = "./samples/greets.is"]} "Greeting Somebody"] 
+                      [H "option" {[.value = "./samples/factorial.is"]} "Factorial"] 
+                    ]
+                  ] ]
+                ]  
+              ]
+              [T ".column"
+                [H "a.button.is-info.is-medium.is-pulled-right#run-code" {[.onclick = ACTIONS.run-code]} "Run"]
+              ]
+            ]
+            [T "#editor"]
+            [T "hr"]
+            [T "h4.subtitle.is-5" "Output:"]
+            [T ".content#output"]
+            [T ".is-clearfix" [H "a.button.is-warning.is-pulled-right#clear-output" {[.onclick = ACTIONS.clear-output]} "Clear Output"] ]
+          ]
+        ]
+        [H "button.modal-close#editor-close-btn" {[.onclick = ACTIONS.quit-online-editor]}]
+      ]
+    ]
+
+    [defun run (str) (_begin
+      [prologue = @[ 
+        (_sync (_use "stdlib") (_let _print @{
+          var s = "";
+          for(var i=0; i<args.length; i++) {
+            if (typeof args[i] === 'string') s += args[i];
+            else s += JSON.stringify(args[i])+" ";
+          }
+          s += "<br>";
+          document.getElementById("output").innerHTML += s;
+          $return (s);
+        }@  )  
+      ]@ ]
+      
+      [tmp = (_eval (+ prologue str) ) ]
+      NIL
+    ) ]
+    
+    [get-sample-program-uri = @{ var ret = document.getElementById("sample-program-selector").value; $return (ret); }@ ]
+    [clear-output = @{ document.getElementById("output").innerHTML = "<div></div>"; }@ ]
+
+
+    (_do (_on ACTIONS.open-online-editor ( @{ document.getElementById("online-editor").className = "modal is-active"; }@ NIL ) ) )
+    (_do (_on ACTIONS.quit-online-editor ( @{ document.getElementById("online-editor").className = "modal"; }@ NIL ) ) )
+
+    (_do (_on ACTIONS.run-code (run  (_pull DATA-STREAMS.source-code-stream) ) ) )
+    (_do (_on ACTIONS.clear-output (clear-output NIL) ) )
+
+    (_do (_on ACTIONS.select-sample-program (_begin
+      (_push DATA-STREAMS.sample-program-stream (get-sample-code-cached (get-sample-program-uri NIL) ) ) 
+    ) ) )
+    
+    render
+  ) ]
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;      src/footer.is      ;;;;;;;;;;;;;;;;;;;;
+
+
+_module "Footer"
+  
+  (_use "stdlib")
+  (_use "./virtualdom.is")
+
+  [defun COMPONENTS.Footer (props) (_begin
+    [render = 
+      [T "footer.footer" [T ".container" [T ".content.has-text-centered"
+        [T "p" 
+          [T "strong" "Ironscript"] " by " [H "a" {[.href = "https://gnsp.github.io" ]} "Ganesh Prasad (GnsP)"]
+          ". The code is licensed " [H "a" {[.href = "http://opensource.org/licenses/mit-license.php"]} "MIT"] "."
+        ]
+        [T "p" [H "a.icon" {[.href = "https://github.com/ironscript"]} [T "i.fa.fa-github"] ] ]
+      ] ] ]
+    ]
+    render
+  ) ]
+

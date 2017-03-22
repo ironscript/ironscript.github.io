@@ -1,0 +1,13 @@
+_module "Actions"
+	
+	(_use "stdlib")
+	(_import "./vdom.is" (PORT))
+
+	[ACTIONS = {}]
+	[ACTIONS.open-online-editor = (PORT)]
+	[ACTIONS.quit-online-editor = (PORT)]
+	[ACTIONS.run-code = (PORT)]
+	[ACTIONS.clear-output = (PORT)]
+	[ACTIONS.select-sample-program = (PORT)]
+	
+	[ACTIONS.after-update = (PORT)]

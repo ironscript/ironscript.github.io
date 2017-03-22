@@ -1,0 +1,206 @@
+_module "Main"
+  (_use "stdlib")
+	(_use "./virtualdom.is")
+	(_import "./http.is" _all)
+
+	[defun COMPONENTS.HomepageMain (props) (_begin
+		[render = 
+			[T "section.section" [T ".container"
+				[T ".content.has-text-centered.is-large"
+					[T "blockquote"
+						"Ironscript is a minimal LISP like programming language implemented in Javascript."
+						" It is interpreted and the interpreter is written in ES2015. Currently we have an "
+						[T "strong" "interpreter"] " that runs on browser and nodejs environments and a "
+						[T "strong" "bundler"] " to bundle ironscript modules into .js files for the browser."
+					]
+				]
+				
+				[T "section.section"
+					[T ".columns" 
+						[T "article.column.is-half.margin-10.content.notification.transparent"
+							[T "h3.subtitle.is-3.green-text.text-darken-3.has-text-centered" "Ironscript IS"]
+							[T "dl"
+								[T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "LISP and Javascript Mixed."] ]
+								[T "dd" "Ironscript is essentially an S-Expression evaluator written in Javascript. "
+												"This evaluator can use functions written Javascript and interact with the "
+												"JS environment at runtime through those functions. In fact you can write "
+												"Javascript functions inside your Ironscript S-Expressions using a simple API."
+								]
+								
+								[T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Functional."]]
+								[T "dd" "Ironscript is essentially a LISP over JS, every valid Ironscript statement / "
+												"expression / program is an " [T "strong" "S-Expression"] ". You will be writing "
+												"mostly functions and streams to express your logic in Ironscript."
+								]
+								
+								[T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Better suited for expressing Asynchronous data flows."]]
+								[T "dd" "The S-Expression " [T "strong" "evaluator is written in CPS (Continuation Passing Style)"] 
+												". Therefore it's a tiny bit slower than synchronous Javascript. But it enables the "
+												"programmer to express complex asynchronous data and control flows linearly"
+								]
+
+								[T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Modular, Easy to Learn, Use and Extend."]]
+								[T "dd" "Ironscript provides an easy-syntax module in the standard library (stdlib), "
+												"that provides some frequently used syntactial abstractions as pattern rewriting "
+												"rules. Ironscript also provides an easy construct for defining pattern rewrite rules."
+								]
+								
+								[T "dt" [T "strong.subtitle.is-5.green-text.text-darken-4" "Free and OpenSource"]]
+								[T "dd" "Free as in 'freedom'. Ironscript is licensed " 
+												[H "a" {[.href = "http://opensource.org/licenses/mit-license.php"]} "MIT"]  
+												" and the source is hosted on github."
+								]
+							]
+						]
+						
+						[T "article.column.content.notification.transparent"
+							[T "h3.subtitle.is-3.red-text.text-darken-3.has-text-centered" "Ironscript IS NOT"]
+							[T "dl"
+								[T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "CommonLISP or Scheme or ..."] ]
+								[T "dd" "Ironscript is a LISP with its own syntactical conventions. Ironscript is "
+												"not designed to be pure LISP or Pure Javascript. It's designed to be minimal, "
+												"easily extendable and suitable for " [T "strong" "Rapid Prototyping"] 
+												" of applications. Its design goals are not syntactical or theoretical purity. "
+												"We are more concerned about simplicity and extensibility." 
+								]
+								
+								[T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Compiled to Javascript."] [T "emph.subtitle.is-5" "(But will be)"]]
+								[T "dd" "Currently we do not have an Ironscript to JS transpiler. We do hope to have "
+												"a decent Optimizing Compiler to JS from v1.3 onwards. Currently there is a lot of "
+												"room for optimizations to be exploited, the interpretation is reasonably fast but "
+												"with an Optimizing Compiler we can generate better Javascript."
+								]
+								
+								[T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Limited to the Browserland"]]
+								[T "dd" "Ironscript can run 'literally' anywhere, where Javascript can run. That includes "
+												"servers via NodeJS, mobile applications via Cordova / PhoneGap. And as for the browser, " 
+												[T "strong" "this website is written in Ironscript."] " Ironscript has been tested on Cordova too." 
+								]
+
+								[T "dt" [T "strong.subtitle.is-5.red-text.text-darken-4" "Stable Yet."]]
+								[T "dd" "As of March 2017 (i.e. when this webpage was written), all these 'we' in this "
+												"document is a single person. Therefore the pace of development is slow and the "
+												"design goals are driven by the needs of an individual. " 
+												[T "strong" "Contribute to make it better and more stable."] 
+								]
+							]
+						]
+					]
+				]
+
+
+				[T "section.section#get-features"
+					[T "h1.title.is-2.has-text-centered" "Features"]
+					[T "hr.grey-text.text-darken-2"]
+					
+					[T ".tile.is-ancestor.is-parent"
+						[T "article.tile.is-4.is-child.has-text-centered"
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-code"] ] "Functional"]
+								[T "p.subtitle.is-6" "LISPlike functional with higher order functions."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-clone"] ] "Modular"]
+								[T "p.subtitle.is-6" "Organize your code into modules and reuse."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-random"] ] "Asynchronous"]
+								[T "p.subtitle.is-6" "Built around a CPS S-Expression evaluator."]
+							] ] ]
+						]
+					]
+					
+					[T ".tile.is-ancestor.is-parent"
+						[T "article.tile.is-4.is-child.has-text-centered"
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-code-fork"] ] "Streams"]
+								[T "p.subtitle.is-6" "Streams are live values or values that change asynchronously and are first class citizens in Ironscript."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-diamond"] ] "Dynamic"]
+								[T "p.subtitle.is-6" "Ironscript is Dynamically Typed and almost eveything that's not literal is symbolic."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-paw"] ] "Rapid App Dev"]
+								[T "p.subtitle.is-6" "Prototype highly interactive apps faster and more easily."]
+							] ] ]
+						]
+					]
+					
+					[T ".tile.is-ancestor.is-parent"
+						[T "article.tile.is-4.is-child.has-text-centered"
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-expand"] ] "Extendable"]
+								[T "p.subtitle.is-6" "Ironscript is easily extendable through Macros, Rewrite Rules and Javascript."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-compress"] ] "Minimal"]
+								[T "p.subtitle.is-6" "The Ironscript interpreter and browserside runtime are about 12KB combined."]
+							] ] ]
+						]
+						[T "article.tile.is-4.is-child.has-text-centered" 
+							[T ".inb" [T ".feature.level" [T "article"
+								[T "h2.title.margin-bottom-20.is-4.deep-orange-text.text-darken-4" [T "span.icon.margin-10" [T "i.fa.fa-magnet"] ] "Mix with JS"]
+								[T "p.subtitle.is-6" "Interoperable with Javascript through a powerful embedding syntax and API."]
+							] ] ]
+						]
+					]
+				]
+
+				
+				[T "section.section"
+					[T ".content.is-medium"
+						[T "h2.title.is-3.has-text-centered" "So, What does it LOOK like ?"]
+						[T "p" 
+							"The following is the " [T "strong" "source code of this website"] ". Do we, all of us, not love " 
+							[T "strong" "Quines"] " ? Here you can see a " [T "strong" "VirtualDOM"] " implemented in Ironscript "
+							"using source code level Javascript embedding. You can also see how the code is neatly organized into "
+							"modules. Though the sourcecode is largely uncommented, it's fairly readable. "
+						]
+						[T "p" 
+							"For a more detailed look at the language, " [T "strong" 
+								"open the Chrome Developer Tools" 
+								[T "span.icon" [T "i.fa.fa-angle-right"] ] 
+								"Console"
+							]
+							". Scroll to the top and check the runtime object logged on the console."
+						]
+						[H ".language-scheme#quine-div" {[.data-language = "scheme"]}
+							[T "pre" [T "code" (ajax-get-file "/samples/quine.is") ] ]
+						]
+					]
+				]
+
+
+				[T "section.section#get-started"
+					[T ".content.has-text-centered"
+						[T "h2.title.is-3" "Get Started"]
+						[T "h5.subtitle.is-5" "Installation with NPM"]
+						[T "pre" [T "code" "npm install -g ironscript"] ]
+					]
+				]
+				
+
+				[T "section.section"
+					[T ".content.is-medium.has-text-centered"
+						[T "h2.title.is-3" "Author"]
+						[T "p.is-medium" "My name is " [T "strong" "Ganesh Prasad (GnsP)"] " and you can know more about me at "
+								[H "a" {[.href = "https://www.linkedin.com/in/ganesh-prasad-20319868/"]} "my LinkedIn"] 
+								" ."
+						]
+					]
+				]
+			] ]
+		]
+		render
+	) ]
