@@ -78,3 +78,35 @@ dl
 ::-webkit-scrollbar-thumb
   width: 8px
   background: #aaa
+
+
+
+
+.loader-bar
+  display: inline-block
+  position: relative
+  height: 2px
+  width: 300px
+  background: rgba(0, 0, 0, 0.2)
+
+  .loader-bar-thumb
+    display: inline-block
+    height: 2px
+    width: 100px
+    position: absolute
+    top: 0
+    background: rgba(0, 0, 0, 0.4)
+    animation: 1s to-and-fro ease-in-out infinite
+
+
+@keyframes to-and-fro
+  0%, 100%
+    left: 0px
+    right: 100px
+  50%
+    left: 200px
+    right: 0px
+
+
+.hide 
+  display: none

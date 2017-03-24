@@ -25,6 +25,9 @@ _module "Main"
 	] 
 
 	(update "app-root" [T "app"])
+	( @{
+		document.getElementById("app-body").className += " hide";
+	}@ NIL)
 	
 	[flask = (FLASK.init "#editor")]
 	[DATA-STREAMS.source-code-stream = (_stream FLASK.magic flask)]
