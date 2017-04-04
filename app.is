@@ -28,6 +28,8 @@ _module "Main"
 	( @{
 		document.getElementById("app-body").className += " hide";
 	}@ NIL)
+
+	(update "show-website-src" [T "code" (ajax-get-file "/samples/quine.is") ] )
 	
 	[flask = (FLASK.init "#editor")]
 	[DATA-STREAMS.source-code-stream = (_stream FLASK.magic flask)]

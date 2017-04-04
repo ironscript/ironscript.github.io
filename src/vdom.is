@@ -1,9 +1,11 @@
 _module "VDOM : The Virtual DOM implementation in Ironscript"
   (_use "stdlib")
 
-  [defun h (type props :children) {
-		[.props = props]
+  [defun h (type props :children) (_begin
+		[res = {}]
+		[res.props = props]
     
+		;(DEBUG res.props)
 		[parse-type-string = @{
 			var type = args[0];
 			var idDelim = args[1];
@@ -32,21 +34,43 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 		}@ ]
 		
     [t = (parse-type-string type) ]
-    [if ["object" === (typeof t)]
+    [if ["object" == (typeof t)]
       then (_begin
-        [.type = t.0]
-        [props.class = t.1]
-				[props.id = t.2]
+        [res.type = t.0]
+        [res.props.class = t.1]
+				;(DEBUG t.0)
+				;(DEBUG t.1)
+				;(DEBUG res.type)
+				;(DEBUG res.props)
+				;(DEBUG "-------------------")
+				[res.props.id = t.2]
       )
-			else [.type = t]
+			else [res.type = t]
     ]
-    [if children [.children = (_seq :children)] ]
-  } ]
+    [if children [res.children = (_seq :children)] ]
+		res
+  ) ]
 
 
   [COMPONENTS = {}]
 	[NOOP = (_fn () NIL) ]
 	[PORT = (_fn () (_stream NOOP NIL) ) ]
+
+	[node-counter = 0]
+	[defun get-node-name (prefix) (_begin
+		(_set! node-counter [node-counter + 1])
+		[ [prefix + node-counter] + (random-string 8) ]
+	) ]
+
+	[random-string = @{
+		function pow (base, exp) {
+			var res = 1;
+			for (var i = 0; i<exp; i++) res *= base;
+			return res;
+		}
+		var len = args[0];
+		$return (Math.floor((Math.random()*pow(10,len)) + 1) );
+	}@ ]
 
 
 	[defun vnode (node id) (_begin
@@ -57,12 +81,12 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
         [if componentfn
           then (_begin
             [nd = (componentfn node.props)]
-            [if node.props.id then (vnode nd node.props.id) else (vnode nd ".")]
+            [if node.props.id then (vnode nd node.props.id) else (vnode nd (get-node-name "component-id-") )]
           )
 					else {
             [.type = type]
             [.props = node.props]
-            [if node.props.id then [.id = node.props.id] else [.id = "."] ]
+            [if node.props.id then [.id = node.props.id] else [.id = (get-node-name "element-id-") ] ]
             [if node.children
               [.children = (_map node.children (_fn (child index) 
                 (vnode child (concat .id "." index) )
@@ -75,12 +99,12 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
     ]
   )]
 
-
+	[DEBUG = @{ console.log(args[0]); }@]
   
 	[EVENTS = {}]
 	[listeners = {}]
   (_let ignore (_begin
-    [init = @{
+    [init = (_volatile @{
       var capt = true;
       if (args[0] === "false") capt = false;
       ("keypress keydown keyup click dbclick scroll focus blur change search select submit input invalid".split(" "))
@@ -89,7 +113,7 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 					$yield(ev);
 				}, capt) ;
 			});
-    }@ ]
+    }@ ) ]
 		
     (_def EVENTS.event-stream (_stream init "true"))
     
@@ -101,18 +125,18 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 			[key = [id + event]]
 			[listeners.key = NIL]
 		) ]
-    [defun EVENTS.remove (id) ( @{
+    [defun EVENTS.remove (id) ( (_volatile @{
       var obj = args[0];
       var id = args[1];
       Object.keys(obj).forEach(function (name) {
         if (name.startsWith(id) || name.startsWith(id+':')) obj[name] = undefined;
       });
-    }@ listeners id ) ]
+    }@ ) listeners id ) ]
 
     (_do (_on EVENTS.event-stream 
       (_begin
         [e = (_pull EVENTS.event-stream)]
-				(_let key (+ e.target.id e.type))
+				(_let key [e.target.id + e.type])
         (_let port (_dot listeners key) )
         [if port (_push port e)]
       )
@@ -121,13 +145,14 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 
 
   [update-fn-internal = (_fx ( 
-		@{
+		(_volatile @{
     
 			function isEventProp (name) { return /^on/.test(name); }
 			function extractEventName (name) { return name.slice(2).toLowerCase(); }
 
 			function isCustomProp (name) {
 				if (name === "id") return true;
+				if (name === "injectContent") return true;
 				if (isEventProp(name)) return true;
 				return false;
 			}
@@ -183,15 +208,20 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 				});
 			}
 
+			function injectContent ($el, props) {
+				if (typeof props === 'object' && props.injectContent) $el.innerHTML = props.injectContent;
+			}
 
 
 			function createElement (node) {
 				if (typeof node === 'string') return document.createTextNode(node);
 				var $el = document.createElement (node.type);
+				//console.log("Debug >>> ", node.type, $el);
 				$el.setAttribute("id", node.id);
 				setProps ($el, node.props);
 
 				addEventListeners(node.id, node.props);
+				injectContent ($el, node.props);
 				if (node.children) node.children.arr.map(createElement).forEach($el.appendChild.bind($el));
 				return $el;
 			}
@@ -212,7 +242,14 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 			var removePatch = [];
 
 			function updateElement ($par, newNode, oldNode, index=0) {
-				if (!oldNode) {
+
+				if (! (oldNode||newNode) ) {
+					if ($par.childNodes.length) {
+						removePatch.push($par.childNodes[index].id);
+						$par.removeChild($par.childNodes[index]);
+					}
+				}
+				else if (!oldNode) {
 					$par.appendChild (createElement (newNode));
 				}
 				else if (!newNode) {
@@ -239,16 +276,19 @@ _module "VDOM : The Virtual DOM implementation in Ironscript"
 				addPatch = [];
 				removePatch = [];
 				updateElement ($par, newNode, oldNode);
+				//console.log("Phase-2\n\n", newNode);
 				return {add:addPatch, remove:removePatch};
 			} 
 			$return (update);
-		}@ ) ) ]
+		}@ ) ) ) ]
 
   
 	[defun update (id newNode oldNode) 
 		(_begin
 			[vOldNode = [if oldNode then (vnode oldNode) else NIL]]
 			[vNewNode = [if newNode then (vnode newNode) else NIL]]
+			;(_echo "Phase-1")
+			;(DEBUG vNewNode);
 			[patches = (update-fn-internal id vNewNode vOldNode ) ]
 			(_map patches.remove (_fn (item) (EVENTS.remove item) ) )
 			(_map patches.add (_fn (item) (EVENTS.listen item.id item.type item.port) ) )

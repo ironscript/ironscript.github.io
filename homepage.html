@@ -1,0 +1,54 @@
+<div class="content has-text-centered is-large"><blockquote>Ironscript is a minimal LISP like programming language implemented in Javascript.
+It is interpreted and the interpreter is written in ES2015. Currently we have an 
+<strong>interpreter</strong> that runs on browser and nodejs environments and a 
+<strong>bundler</strong> to bundle ironscript modules into .js files for the browser.
+		</blockquote></div><section class="section"><div class="columns"><article class="column is-half margin-10 content notification transparent"><h3 class="subtitle is-3 green-text text-darken-3 has-text-centered">Ironscript IS</h3><dl><dt> <strong class="subtitle is-5 green-text text-darken-4">LISP and Javascript Mixed.</strong></dt><dd>Ironscript is essentially an S-Expression evaluator written in Javascript. 
+This evaluator can use functions written Javascript and interact with the 
+JS environment at runtime through those functions. In fact you can write 
+Javascript functions inside your Ironscript S-Expressions using a simple API.
+		</dd><dt><strong class="subtitle is-5 green-text text-darken-4">Functional.</strong></dt><dd>Ironscript is essentially a LISP over JS, every valid Ironscript statement / 
+expression / program is an <strong>S-Expression</strong>. You will be writing 
+mostly functions and streams to express your logic in Ironscript.
+		</dd><dt><strong class="subtitle is-5 green-text text-darken-4">Better suited for expressing Asynchronous data flows.</strong></dt><dd>The S-Expression <strong>evaluator is written in CPS (Continuation Passing Style)</strong>.  
+Therefore it's a tiny bit slower than synchronous Javascript. But it enables the 
+programmer to express complex asynchronous data and control flows linearly.
+</dd><dt><strong class="subtitle is-5 green-text text-darken-4">Modular, Easy to Learn, Use and Extend.</strong></dt><dd>Ironscript provides an easy-syntax module in the standard library (stdlib), 
+that provides some frequently used syntactial abstractions as pattern rewriting 
+rules. Ironscript also provides an easy construct for defining pattern rewrite rules.
+		</dd><dt><strong class="subtitle is-5 green-text text-darken-4">Free and OpenSource</strong></dt><dd>Free as in 'freedom'. Ironscript is licensed 
+<a href="http://opensource.org/licenses/mit-license.php">MIT</a> 
+and the source is hosted on github.
+		
+
+	</dd></dl></article><article class="column content notification transparent"><h3 class="subtitle is-3 red-text text-darken-3 has-text-centered">Ironscript IS NOT</h3><dl><dt><strong class="subtitle is-5 red-text text-darken-4">CommonLISP or Scheme or ...</strong></dt><dd>Ironscript is a LISP with its own syntactical conventions. Ironscript is 
+not designed to be pure LISP or Pure Javascript. It's designed to be minimal, 
+easily extendable and suitable for <strong>Rapid Prototyping</strong> 
+of applications. Its design goals are not syntactical or theoretical purity. 
+We are more concerned about simplicity and extensibility.
+		</dd><dt><strong class="subtitle is-5 red-text text-darken-4">Compiled to Javascript. </strong><emph class="subtitle is-5">(But will be)</emph></dt><dd>Currently we do not have an Ironscript to JS transpiler. We do hope to have 
+a decent Optimizing Compiler to JS from v1.3 onwards. Currently there is a lot of 
+room for optimizations to be exploited, the interpretation is reasonably fast but 
+with an Optimizing Compiler we can generate better Javascript.
+		</dd><dt><strong class="subtitle is-5 red-text text-darken-4">Limited to the Browserland</strong></dt><dd>Ironscript can run 'literally' anywhere, where Javascript can run. That includes 
+servers via NodeJS, mobile applications via Cordova / PhoneGap. And as for the browser, 
+<strong>this website is written in Ironscript</strong>. Ironscript has been tested on Cordova too.
+</dd><dt><strong class="subtitle is-5 red-text text-darken-4">Stable Yet.</strong></dt><dd>As of March 2017 (i.e. when this webpage was written), all these 'we' in this 
+document is a single person. Therefore the pace of development is slow and the 
+design goals are driven by the needs of an individual. 
+<strong>Contribute to make it better and more stable</strong>. 
+
+</dd></dl></article></div></section><section id="get-features" class="section"><h1 class="title is-2 has-text-centered">Features</h1><hr class="grey-text text-darken-2"/><div class="tile is-ancestor is-parent"><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"> <span class="icon margin-10"><i class="fa fa-code"></i></span><span>Functional</span></h2><p class="subtitle is-6">LISPlike functional with higher order functions.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-clone"></i></span><span>Modular</span></h2><p class="subtitle is-6">Organize your code into modules and reuse.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"> <div class="inb"><div class="feature level"><article><div class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-random"></i></span><span>Asynchronous</span></div><p class="subtitle is-6">Built around a CPS S-Expression evaluator.</p></article></div></div></article></div><div class="tile is-ancestor is-parent"><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-code-fork"></i></span><span>Streams</span></h2><p class="subtitle is-6">Streams are live values or values that change asynchronously and are first class citizens in Ironscript.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-diamond"></i></span><span>Dynamic</span></h2><p class="subtitle is-6">Ironscript is Dynamically Typed and almost eveything that's not literal is symbolic.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"> <div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-paw"></i></span><span>Rapid App Dev</span></h2><p class="subtitle is-6">Prototype highly interactive apps faster and more easily.</p></article></div></div></article></div><div class="tile is-ancestor is-parent"><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-expand"></i></span><span>Extendable</span></h2><p class="subtitle is-6">Ironscript is easily extendable through Macros, Rewrite Rules and Javascript.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-compress"></i></span><span>Minimal</span></h2><p class="subtitle is-6">The Ironscript interpreter and browserside runtime are about 12KB combined.</p></article></div></div></article><article class="tile is-4 is-child has-text-centered"><div class="inb"><div class="feature level"><article><h2 class="title margin-bottom-20 is-4 deep-orange-text text-darken-4"><span class="icon margin-10"><i class="fa fa-magnet"></i></span><span>Mix with JS</span></h2><p class="subtitle is-6">Interoperable with Javascript through a powerful embedding syntax and API.</p></article></div></div></article></div></section><section class="section"><div class="content is-medium"><h2 class="title is-3 has-text-centered">So, What does it LOOK like ?</h2><p>The following is the <strong>source code of this website</strong>. Do we, all of us, not love 
+<em>Quines</em> ? Here you can see a <strong>VirtualDOM</strong> implemented in Ironscript 
+using source code level Javascript embedding. You can also see how the code is neatly organized into 
+modules. Though the sourcecode is largely uncommented, it's fairly readable. 
+		</p><div id="quine-div" data-language="scheme" class="language-scheme"><pre id="show-website-src" class="line-numbers"></pre></div></div></section><section id="get-started" class="section"><div class="content is-medium"><h2 class="title is-3 has-text-centered">Get Started</h2><h5 class="subtitle is-4">Installation with NPM</h5><p>Ironscript is can be installed using npm. The package adds 2 commands to the terminal, <b><code>ironscript</code></b> and 
+<b><code>ibun</code></b>. It's recommended to install the package globally by using the <b><code>-g</code></b> flag. You may have to 
+use sudo for installation on Linux depending on your permissions.</p><pre class="has-text-centered"><code>npm install -g ironscript</code></pre><h5 class="subtitle is-4">Doing the Hello World !</h5><p>First check the Hello World example in the Try It Online section, create a file named hello.is on your system, write the code and
+run <b><code>ironscript hello.is</code></b> from your terminal. It's that easy, really. We do not have an REPL yet, we hope to have 
+implemented an REPL by version 1.3 .
+</p><h5 class="subtitle is-4">Doing Bigger and Better Things</h5><p>than writing a Hello World, like writing this website ... Well, that's <b class="green-text text-darken-2">Coming Soon</b>.
+
+	
+</p></div></section><section class="section"><div class="content is-medium has-text-centered"><h2 class="title is-3">Author</h2><p class="is-medium">My name is <strong>Ganesh Prasad (GnsP)</strong> and you can know more about me at 
+<a href="https://gnsp.github.io">my Homepage</a>. 
+		</p></div></section>
