@@ -1713,7 +1713,7 @@ var breakLoop = {};
 
 function _eachOfLimit(limit) {
     return function (obj, iteratee, callback) {
-        callback = once(callback || noop);
+        //callback = once(callback || noop);						// Why ??
         if (limit <= 0 || !obj) {
             return callback(null);
         }
@@ -1747,7 +1747,7 @@ function _eachOfLimit(limit) {
                     return;
                 }
                 running += 1;
-                iteratee(elem.value, elem.key, onlyOnce(iterateeCallback));
+                iteratee(elem.value, elem.key, once(iterateeCallback));   // why OnlyOnce ?
             }
         }
 
@@ -5666,11 +5666,62 @@ var _on = new IronSymbol('_on');
 var _include = new IronSymbol('_include');
 var _use = new IronSymbol('_use');
 var _import = new IronSymbol('_import');
+var _volatile = new IronSymbol('_volatile');
 
-var evalArg = function evalArg(env) {
+var isInDevelopmentMode = false;
+
+var SeeWhatsHappening = function () {
+	function SeeWhatsHappening(param) {
+		classCallCheck(this, SeeWhatsHappening);
+
+		this.param = param;
+		this.arr = [];
+	}
+
+	createClass(SeeWhatsHappening, [{
+		key: 'push',
+		value: function push(s) {
+			this.arr.push(Cell.stringify(s));
+		}
+	}, {
+		key: 'print',
+		value: function print() {
+			console.log(this.param, '\n\n\n');
+			console.log('Number of calls : ', this.arr.length, '\n\n\n');
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
+
+			try {
+				for (var _iterator = this.arr[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var x = _step.value;
+					console.log(x);
+				}
+			} catch (err) {
+				_didIteratorError = true;
+				_iteratorError = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
+					}
+				} finally {
+					if (_didIteratorError) {
+						throw _iteratorError;
+					}
+				}
+			}
+		}
+	}]);
+	return SeeWhatsHappening;
+}();
+
+var swh = new SeeWhatsHappening('Order of Eval');
+
+var evalArg = function evalArg(env, async) {
 	return function (arg, _cb) {
 		evalAsync(arg, env, function (err, __e, __c, argval) {
-			nextTick(_cb, err, argval);
+			if (async) nextTick(_cb, err, argval);else _cb(err, argval);
 		});
 	};
 };
@@ -5679,15 +5730,14 @@ var defaultCallback = function defaultCallback() {
 	return function (err) {
 		if (err) {
 			if (err instanceof IError) err.log();
-			throw err;
+			if (isInDevelopmentMode) throw err;
 		}
 	};
 };
 
-var endOfExecution = function endOfExecution() {
-	return function (err) {
-		if (!err) console.timeEnd("Runtime");else throw err;
-	};
+var endOfExecution = function endOfExecution(err) {
+	//swh.print();
+	if (!err) console.timeEnd("Total Build Time");else if (isInDevelopmentMode) throw err;
 };
 
 function cellToArr(cell, arr, env, cb) {
@@ -5703,7 +5753,7 @@ function cellToArr(cell, arr, env, cb) {
 }
 
 function evalAsync(x, env) {
-	var cb = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : endOfExecution();
+	var cb = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : endOfExecution;
 
 	if (x instanceof IronSymbol) {
 		if (_self.equal(x)) cb(null, env, null, env);else if (_this.equal(x)) cb(null, env, null, env.collection);else if (_null_.equal(x)) cb(null, env, null, null);else if (_true_.equal(x)) cb(null, env, null, true);else if (_false_.equal(x)) cb(null, env, null, false);else env.getAsync(x, cb);
@@ -5750,28 +5800,28 @@ function evalAsync(x, env) {
 							if (seqIsSequence) _arr = seq$$1.arr;
 							var arr = [];
 							var i = 0;
-							var _iteratorNormalCompletion = true;
-							var _didIteratorError = false;
-							var _iteratorError = undefined;
+							var _iteratorNormalCompletion2 = true;
+							var _didIteratorError2 = false;
+							var _iteratorError2 = undefined;
 
 							try {
-								for (var _iterator = _arr[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-									var it = _step.value;
+								for (var _iterator2 = _arr[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+									var it = _step2.value;
 
 									arr.push({ index: i, val: it });
 									i++;
 								}
 							} catch (err) {
-								_didIteratorError = true;
-								_iteratorError = err;
+								_didIteratorError2 = true;
+								_iteratorError2 = err;
 							} finally {
 								try {
-									if (!_iteratorNormalCompletion && _iterator.return) {
-										_iterator.return();
+									if (!_iteratorNormalCompletion2 && _iterator2.return) {
+										_iterator2.return();
 									}
 								} finally {
-									if (_didIteratorError) {
-										throw _iteratorError;
+									if (_didIteratorError2) {
+										throw _iteratorError2;
 									}
 								}
 							}
@@ -5790,26 +5840,26 @@ function evalAsync(x, env) {
 										if (seqIsSequence) cb(err, env, null, new Sequence(newarr));else cb(err, env, null, newarr);
 									});else filterLimit(arr, 32, cbfn, function (err, newarr) {
 										var retarr = [];
-										var _iteratorNormalCompletion2 = true;
-										var _didIteratorError2 = false;
-										var _iteratorError2 = undefined;
+										var _iteratorNormalCompletion3 = true;
+										var _didIteratorError3 = false;
+										var _iteratorError3 = undefined;
 
 										try {
-											for (var _iterator2 = newarr[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-												var it = _step2.value;
+											for (var _iterator3 = newarr[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+												var it = _step3.value;
 												retarr.push(it.val);
 											}
 										} catch (err) {
-											_didIteratorError2 = true;
-											_iteratorError2 = err;
+											_didIteratorError3 = true;
+											_iteratorError3 = err;
 										} finally {
 											try {
-												if (!_iteratorNormalCompletion2 && _iterator2.return) {
-													_iterator2.return();
+												if (!_iteratorNormalCompletion3 && _iterator3.return) {
+													_iterator3.return();
 												}
 											} finally {
-												if (_didIteratorError2) {
-													throw _iteratorError2;
+												if (_didIteratorError3) {
+													throw _iteratorError3;
 												}
 											}
 										}
@@ -6023,6 +6073,11 @@ function evalAsync(x, env) {
 					});
 				});
 			})();
+		} else if (_volatile.equal(xarray[0])) {
+			evalAsync(xarray[1], env, function (err, _env, _, func) {
+				if (func instanceof Function) func.isVolatile = true;
+				cb(err, env, null, func);
+			});
 		} else {
 			evalAsync(xarray[0], env, function (err, env, _, func) {
 
@@ -6039,8 +6094,13 @@ function evalAsync(x, env) {
 					var _args = xarray.slice(1);
 					func.apply(undefined, [null, env, cb].concat(toConsumableArray(_args)));
 				} else if (func instanceof Function) {
+					//swh.push(xarray[0]);
 					var _args2 = xarray.slice(1);
-					mapLimit(_args2, 64, evalArg(env), function (err, argvals) {
+
+					var mapcb = evalArg(env);
+					if (func.isVolatile) mapcb = evalArg(env, true);
+
+					mapLimit(_args2, 16, mapcb, function (err, argvals) {
 						func.apply(undefined, [err, env, cb].concat(toConsumableArray(argvals)));
 					});
 				} else cb(null, env, null, x);
@@ -6112,7 +6172,7 @@ function fxSync(f) {
 
 function fxAsync(f) {
   // f = ($return, $throw, $catch, $env, ...args) => {}
-  return function (err, _env, _cb) {
+  var proc = function proc(err, _env, _cb) {
     for (var _len4 = arguments.length, args = Array(_len4 > 3 ? _len4 - 3 : 0), _key4 = 3; _key4 < _len4; _key4++) {
       args[_key4 - 3] = arguments[_key4];
     }
@@ -6142,6 +6202,7 @@ function fxAsync(f) {
 
     f.apply(undefined, [$return, $throw, $catch, $yield, _env.par].concat(args));
   };
+  return proc;
 }
 
 /**
@@ -6434,8 +6495,11 @@ var Parser = function () {
   function Parser(input) {
     classCallCheck(this, Parser);
 
+    console.log('Parsing ... ', input.name);
+    console.time('Parsing Time');
     this.lex = new Lexer(input);
     this.root = this.parseList();
+    console.timeEnd('Parsing Time');
   }
 
   createClass(Parser, [{
@@ -6531,12 +6595,11 @@ function _eval_unsafe(err, env, cb, src, name) {
 }
 
 function interpretSync(src, name, env) {
+  console.time("Total Build Time");
   if (!name) name = 'unnamed';
-  console.time("Runtime");
   var p = new Parser({ name: name, buffer: src });
-  evalAsync(p.parse(), env, function (err) {
-    if (err) throw err;
-  });
+  var parsed = p.parse();
+  evalAsync(parsed, env); //, (err) => { if(err) throw err; });
 }
 
 /**
@@ -6979,12 +7042,12 @@ var Runtime = function () {
   }, {
     key: 'readFile',
     value: function readFile(filepath) {
-      console.log('-----------------------', filepath, '----------------------');
+      //console.log('-----------------------',filepath,'----------------------');
       //debugger;
       var f = this.open(filepath);
 
       //console.log(new Path(filepath));
-      if (f) console.log(f.content);
+      //if (f) console.log(f.content);
 
       if (f) return f.content;
       return null;
@@ -7058,7 +7121,7 @@ var Package = function () {
   createClass(Package, [{
     key: 'run',
     value: function run() {
-      console.log("Running ", this.runtime);
+      //console.log("Running ", this.runtime);
       this.runtime.run(this.main);
       return null;
     }
